@@ -59,13 +59,35 @@
           appendMessage(userText, 'user');
           showTypingIndicator();
 
-          try {
-              const response = await fetch(API_URL, {
-                  method: 'POST',
-                  headers: {
-                      'Content-Type': 'application/json',
-                      // Ключ будет добавлен Vercel автоматически из настроек!
-                      'Authorization': 'Bearer ' + process.env.ROUTERAI_API_KEY,
+         try {
+    const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + process.env.ROUTERAI_API_KEY,
+            // Добавляем эти две строки для обхода блокировки CORS
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Request-Method': 'POST'
+        },
+        body: JSON.stringify({
+            model: MODEL_NAME,
+            messages: [{ role: "user", content: userText }],
+            temperature: 0.7
+        }),
+    });
+
+    // ... остальной код (проверка response.ok, data.choices) остается прежним
+    if (!response.ok) {
+        // Проверим, что сервер ответил, а не просто заблокировал запрос
+        const errorText = await response.text();
+        removeTypingIndicator();
+        appendMessage(`Ошибка сервера (код ${response.status}): ${errorText}`, 'ai');
+        return;
+    }
+
+    const data = await response.json();
+    // ... и далее по коду
+}
                   },
                   body: JSON.stringify({
                       model: MODEL_NAME,
