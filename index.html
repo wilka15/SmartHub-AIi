@@ -171,9 +171,50 @@
           appendMessage(text, 'user');
           inputText.value = '';
 
-          // ИМИТАЦИЯ ОТВЕТА ИИ (замените на реальный API)
-          setTimeout(() => appendMessage('Привет! Это неросеть "SmartHub-AI.', 'ai'), 800);
-      };
+    // ВАШ API-КЛЮЧ ОТ ROUTERAI
+const YOUR_API_KEY = 'sk-y8EM95PRys12GdT29WqkLhS0OICqNWwb'; // Вставьте сюда ключ, который получили в личном кабинете
+
+// URL-адрес API RouterAI
+const API_URL = 'https://routerai.ru/api/v1/chat/completions';
+
+// ... внутри функции sendMessage ...
+
+try {
+    // Показываем индикатор печати
+    showTyping();
+
+    const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + YOUR_API_KEY,
+        },
+        body: JSON.stringify({
+            // Модель, которую вы хотите использовать. Список доступных моделей есть в документации.
+            model: "openai/gpt-4o-mini", // или "openai/gpt-4o", "claude/sonnet" и др.
+            messages: [
+                { role: "user", content: text }
+            ],
+            temperature: 0.7 // Параметр "креативности" ответа
+        }),
+    });
+
+    const data = await response.json();
+    removeTyping(); // Скрываем индикатор
+
+    // Парсим ответ от RouterAI (формат OpenAI)
+    const answer = data.choices[0].message.content;
+    appendMessage(answer, 'ai', true);
+
+    if (ttsEnabled) speakText(answer); // Озвучка, если включена
+
+} catch (err) {
+    removeTyping();
+    appendMessage('Ошибка: не удалось получить ответ от ИИ. Проверьте соединение.', 'ai', true);
+    console.error(err);
+} finally {
+    isSending = false;
+}
 
       inputText.addEventListener('keydown', e => { if (e.key === 'Enter') sendBtn.click(); });
       clearBtn.onclick = clearChat;
