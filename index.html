@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Ассистент</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* --- СТИЛИ (ДИЗАЙН) --- */
+        :root { --accent:#7a5bff; --accent2:#00a6ff; --bg1:#06020a; --panel: rgba(255,255,255,0.04); --glass: rgba(255,255,255,0.06); --text:#eaf6ff; }
+        *, html, body { box-sizing:border-box; margin:0; padding:0; }
+        html, body { height:100%; background: linear-gradient(135deg,#070014,#001233); font-family: 'Orbitron', system-ui, Arial; color:var(--text); -webkit-font-smoothing:antialiased; }
+        .app { width:94%; max-width:1200px; margin:24px auto; height:88vh; position:relative; display:flex; gap:20px; }
+        .chat-wrap { flex:1; display:flex; flex-direction:column; gap:12px; }
+        .panel { background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01)); border-radius:16px; padding:18px; border:1px solid rgba(122,91,255,.12); box-shadow: 0 8px 40px rgba(15,10,30,.6); height:100%; display:flex; flex-direction:column; backdrop-filter:blur(8px); }
+        #chat { flex:1; overflow-y:auto; padding-right:8px; }
+        .msg { display:flex; margin:10px 6px; opacity:1; }
+        .msg.user { justify-content:flex-end; }
+        .bubble { max-width:72%; padding:12px 14px; border-radius:12px; background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)); color:var(--text); box-shadow: 0 6px 18px rgba(0,0,0,.4); }
+        .bubble.user { background:linear-gradient(135deg, rgba(122,91,255,.95), rgba(0,166,255,.85)); color:#021; }
+        .bubble.ai { background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01)); color:var(--text); }
+        .input-row { display:flex; gap:10px; align-items:center; margin-top:8px; }
+        .input-row input[type="text"] { flex:1; padding:12px 14px; border-radius:10px; border:none; background:rgba(255,255,255,.03); color:var(--text); outline:none; }
+        .btn { padding:10px 14px; border-radius:10px; border:none; cursor:pointer; font-weight:700; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#001; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="chat-wrap">
+            <div class="panel">
+                <div id="chat" aria-live="polite"></div>
+                <div class="input-row" style="margin-top:12px">
+                    <input id="inputText" type="text" placeholder="Напишите сообщение..." aria-label="Сообщение" />
+                    <button id="sendBtn" class="btn">Отправить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+      const chatEl = document.getElementById('chat');
+      const inputText = document.getElementById('inputText');
+      const sendBtn = document.getElementById('sendBtn');
+
+      const API_URL = 'https://routerai.ru/api/v1/chat/completions';
+      const MODEL_NAME = 'openai/gpt-4o-mini';
+
+      // --- ФУНКЦИИ ДЛЯ ЧАТА ---
+      function appendMessage(text, role='ai') {
+          const wrap = document.createElement('div'); wrap.className = 'msg ' + role;
+          const bubble = document.createElement('div'); bubble.className = 'bubble ' + role;
+          bubble.textContent = text;
+          wrap.appendChild(bubble);
+          chatEl.appendChild(wrap);
+          chatEl.scrollTop = chatEl.scrollHeight;
+      }
+
+      async function sendMessageToRouterAI(userText) {
+          appendMessage(userText, 'user');
+          showTypingIndicator();
+
+          try {
+              const response = await fetch(API_URL, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      // Ключ будет добавлен Vercel автоматически из настроек!
+                      'Authorization': 'Bearer ' + process.env.ROUTERAI_API_KEY,
+                  },
+                  body: JSON.stringify({
+                      model: MODEL_NAME,
+                      messages: [{ role: "user", content: userText }],
+                      temperature: 0.7
+                  }),
+              });
+
+              const data = await response.json();
+              removeTypingIndicator();
+              const answer = data.choices[0].message.content;
+              appendMessage(answer, 'ai');
+
+          } catch (err) {
+              removeTypingIndicator();
+              appendMessage('⚠️ Ошибка соединения с сервером.', 'ai');
+              console.error(err);
+          }
+      }
+
+      function showTypingIndicator() {
+          const wrap = document.createElement('div');
+          wrap.className = 'msg ai';
+          wrap.innerHTML = `<div class="bubble ai">Печатает...</div>`;
+          chatEl.appendChild(wrap);
+          chatEl.scrollTop = chatEl.scrollHeight;
+      }
+      function removeTypingIndicator() {
+          const lastMsg = chatEl.lastElementChild;
+          if (lastMsg && lastMsg.classList.contains('ai')) {
+              lastMsg.remove();
+          }
+      }
+
+      sendBtn.onclick = () => {
+          const text = inputText.value.trim();
+          if (!text) return;
+          inputText.value = '';
+          sendMessageToRouterAI(text);
+      };
+      inputText.addEventListener('keydown', e => { if (e.key === 'Enter') sendBtn.click(); });
+    </script>
+</body>
+</html>
