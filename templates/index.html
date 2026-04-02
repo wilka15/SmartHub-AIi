@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>RouterAI Чат</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .chat-container { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); width: 100%; max-width: 500px; padding: 25px; }
+        textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; resize: vertical; min-height: 80px; font-size: 16px; margin-bottom: 15px; }
+        button { background-color: #007bff; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; transition: background-color 0.3s ease; }
+        button:hover { background-color: #0056b3; }
+        #answer-box { margin-top: 25px; padding: 15px; background-color: #e9f5ff; border-left: 4px solid #007bff; border-radius: 6px; }
+        .loading { color: #888; font-style: italic; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+<div class="chat-container">
+    <h1>🤖 RouterAI Ассистент</h1>
+    <textarea id="user-input" placeholder="Введите ваш вопрос..."></textarea><br>
+    <button onclick="sendMessage()">Отправить</button>
+    <div id="answer-box"></div>
+    <div class="loading" id="loading-indicator">Думает...</div>
+</div>
+<script>
+async function sendMessage() {
+    const input = document.getElementById('user-input');
+    const question = input.value.trim();
+
+    if (!question) {
+        alert('Пожалуйста, введите вопрос.');
+        return;
+    }
+
+    const answerBox = document.getElementById('answer-box');
+    const loading = document.getElementById('loading-indicator');
+    
+    answerBox.innerHTML = '';
+    loading.style.display = 'block';
+
+    try {
+        const response = await fetch('/ask', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({question})
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        answerBox.innerHTML = `<strong>Ответ:</strong><br>${data.answer}`;
+        
+    } catch (error) {
+        console.error(error);
+        answerBox.innerHTML = `<p style="color:#d32f2f;">Произошла ошибка при получении ответа.</p>`;
+    } finally {
+        loading.style.display = 'none';
+    }
+}
+</script>
+</body>
+</html>
